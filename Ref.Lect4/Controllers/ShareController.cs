@@ -53,7 +53,7 @@ namespace Ref.Lect4.Controllers
             }
             else
             {
-                return NotFound();
+                return NotFound("The Item Is Not Found");
             }
         }
 
