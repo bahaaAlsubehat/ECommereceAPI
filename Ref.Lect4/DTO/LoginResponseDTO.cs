@@ -1,4 +1,5 @@
 ﻿using Ref.Lect4.Models;
+using System.Security.Claims;
 
 namespace Ref.Lect4.DTO
 {
@@ -11,5 +12,6 @@ namespace Ref.Lect4.DTO
         public int LoginId { get; set; }
 
         public List<Cart> MyOrder { get; set; }
+        public ClaimsIdentity? Email { get; internal set; }
     }
 }

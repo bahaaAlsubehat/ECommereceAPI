@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Ref.Lect4.Models;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Ref.Lect4.Controllers
 {
@@ -16,12 +17,15 @@ namespace Ref.Lect4.Controllers
             this._storeContext = storeContext;
         }
 
+
         // We want to cache all categories to redeuse hits on APi 
         // First we want to select all Gategories 
         [HttpGet]
         [Route("GetCategories")]
-        public IActionResult GetAllCategories()
+        public IActionResult GetAllCategories([FromHeader]string token)
         {
+            return Ok(DecodeToken(token));
+
             var categories = _storeContext.Category.ToList();
             return Ok(categories);
         }
@@ -46,7 +50,7 @@ namespace Ref.Lect4.Controllers
         public IActionResult GetItemById(int Id)
         {
             var item = _storeContext.Items.Where(y => y.ItemId == Id && y.IsAvailable== true).SingleOrDefault();
-
+             
             if (item != null)
             {
                return Ok(item); 
@@ -102,7 +106,19 @@ namespace Ref.Lect4.Controllers
             return Ok(item.Skip(SkipAmount).Take(PageSize));
         }
 
-       
+
+        // Decoding Code Below
+
+        [NonAction]
+        public int DecodeToken(string tokenString)
+        {
+            String toke = "Bearer " + tokenString;
+            var jwtEncodedString = toke.Substring(7);
+
+            var token = new JwtSecurityToken(jwtEncodedString: jwtEncodedString);
+            int UserId = Int32.Parse((token.Claims.First(c => c.Type == "Userid").Value.ToString()));
+            return UserId;
+        }
 
     }
 }

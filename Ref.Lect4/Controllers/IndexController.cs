@@ -1,7 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
 using Ref.Lect4.DTO;
 using Ref.Lect4.Models;
+using System.Data;
+using System.Diagnostics.Contracts;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Ref.Lect4.Controllers
 {
@@ -10,11 +18,15 @@ namespace Ref.Lect4.Controllers
     public class IndexController : ControllerBase
     {
         private readonly OnlineStoreContext _storeContext;
-        public IndexController(OnlineStoreContext storeContext)
+        private readonly  IConfiguration _configuration;
+        private string contraints;
+        public IndexController(OnlineStoreContext storeContext, IConfiguration configuration)
         {
             // Data Source
 
             this._storeContext = storeContext;
+            _configuration = configuration;
+            contraints = _configuration.GetValue<string>("SecretToken").ToString();
         }
         // First IAction Function To create Account and we use Httppostverb, we use To object User and Login cause if we create Account we must save info in Login(UserName and Password) so we will Use DTO to collect Two object in one Object
         [HttpPost]
@@ -41,6 +53,34 @@ namespace Ref.Lect4.Controllers
 
             return Ok("");
         }
+
+        // We want to create Token for encryption Login
+
+        [NonAction]  
+        public string GenerateJwtToken(LoginResponseDTO logincredintial)  // 1- Create Method
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();  // 2- create object from class JwtSecurityTokenHandler in Token Package I have istalled it 
+            var jwttoken = contraints; // declare type to get SecretToken from appsetting.json
+            var tokenkey = Encoding.UTF8.GetBytes(jwttoken.ToCharArray()); // Array of char يوصلني مقطع على شكل  
+            var TokenDescriptor = new SecurityTokenDescriptor  // هون بحدد الاشياء اللي بدي اعمللها تشفير
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Email, logincredintial.UserName),
+                    new Claim("Userid", logincredintial.UserId.ToString()),
+                    new Claim("Loginid", logincredintial.LoginId.ToString()),
+                    new Claim("UserType", logincredintial.UserType)
+                }),
+                Expires = DateTime.Now.AddHours(3),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenkey)  // ready to encoding
+                , SecurityAlgorithms.HmacSha512Signature)  // HmacSha256Signature or HmacSha512Signature  are an algorithim method for encryption
+
+            };
+            var token = tokenHandler.CreateToken(TokenDescriptor);
+            return tokenHandler.WriteToken(token);
+
+        }
+        
 
 
         [HttpPost]
@@ -106,7 +146,7 @@ namespace Ref.Lect4.Controllers
                 RESPONS.UserType = _storeContext.UserType.Where(x => x.UserTypeId == user.UserTypeId).First().Name;
                 RESPONS.LoginId = _storeContext.Login.Where(x => x.UserId == user.UserId).First().LoginId;
                 RESPONS.MyOrder = _storeContext.Cart.Where(x => x.UserId == user.UserId).ToList();
-                return Ok(RESPONS);
+                return Ok(GenerateJwtToken(RESPONS));
 
 
 
@@ -117,6 +157,8 @@ namespace Ref.Lect4.Controllers
             
 
         }
+        
+
         [HttpPut]
         [Route("Resetpassword")]
         public IActionResult UpdatePassword([FromBody] ResetPassword reset)
@@ -184,6 +226,9 @@ namespace Ref.Lect4.Controllers
 
            
         }
+
+
+
 
     }
 }
