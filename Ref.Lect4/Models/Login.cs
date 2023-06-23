@@ -11,10 +11,10 @@ namespace Ref.Lect4.Models
     {
         public int LoginId { get; set; }
         public bool? IsActive { get; set; }
-        public string CurrentToken { get; set; }
+        public string? CurrentToken { get; set; }
         public int? UserId { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string? Username { get; set; }
+        public string? Password { get; set; }
 
         public virtual User User { get; set; }
     }

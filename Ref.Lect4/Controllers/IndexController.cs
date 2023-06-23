@@ -1,14 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.VisualBasic;
 using Ref.Lect4.DTO;
 using Ref.Lect4.Models;
 using System.Data;
-using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Ref.Lect4.Controllers
@@ -18,7 +15,7 @@ namespace Ref.Lect4.Controllers
     public class IndexController : ControllerBase
     {
         private readonly OnlineStoreContext _storeContext;
-        private readonly  IConfiguration _configuration;
+        private readonly IConfiguration _configuration;
         private string contraints;
         public IndexController(OnlineStoreContext storeContext, IConfiguration configuration)
         {
@@ -28,6 +25,8 @@ namespace Ref.Lect4.Controllers
             _configuration = configuration;
             contraints = _configuration.GetValue<string>("SecretToken").ToString();
         }
+       
+        
         // First IAction Function To create Account and we use Httppostverb, we use To object User and Login cause if we create Account we must save info in Login(UserName and Password) so we will Use DTO to collect Two object in one Object
         [HttpPost]
         [Route("Register")]
@@ -37,16 +36,22 @@ namespace Ref.Lect4.Controllers
 
             User user = new User();
             user.UserTypeId = 1;
-            user.Name = newUser.Name;  // Initialization
-            user.Email = newUser.Email;
-            user.Phone = newUser.Phone;
-            _storeContext.Add(user);
-            _storeContext.SaveChanges();
+            using (Aes aes = Aes.Create())
+            {
+                user.Name = EncryptString(newUser.Name, aes.Key,aes.IV);  // Initialization
+                user.Email = EncryptString(newUser.Email , aes.Key, aes.IV);
+                user.Phone = EncryptString(newUser.Phone, aes.Key,aes.IV);
+                user.Key = Convert.ToBase64String(aes.Key);
+                user.Iv = Convert.ToBase64String(aes.IV);
+                _storeContext.Add(user);
+                _storeContext.SaveChanges();
 
+            }
+           
             Login login = new Login();
-            login.Username = newUser.Email;
-            login.Password = newUser.Password;
-            login.UserId = _storeContext.User.Where(x => x.Email == newUser.Email).OrderByDescending(x => x.UserId).First().UserId;  // This is called Linq we Filter, Condition and Sorting
+            login.Username = GenerateSHA384String(newUser.Email); // hashing
+            login.Password = GenerateSHA384String(newUser.Password);
+            login.UserId = _storeContext.User.Where(x => x.Email == user.Email).OrderByDescending(x => x.UserId).First().UserId;  // This is called Linq we Filter, Condition and Sorting
             // Select Top(1) UserId from [User] Where Email = 'Bahaa@gmail.com' order by [UserId] desc.
             _storeContext.Add(login);
             _storeContext.SaveChanges();
@@ -56,7 +61,7 @@ namespace Ref.Lect4.Controllers
 
         // We want to create Token for encryption Login
 
-        [NonAction]  
+        [NonAction]
         public string GenerateJwtToken(LoginResponseDTO logincredintial)  // 1- Create Method
         {
             var tokenHandler = new JwtSecurityTokenHandler();  // 2- create object from class JwtSecurityTokenHandler in Token Package I have istalled it 
@@ -80,16 +85,18 @@ namespace Ref.Lect4.Controllers
             return tokenHandler.WriteToken(token);
 
         }
-        
+
 
 
         [HttpPost]
         [Route("Login")]
         public IActionResult Login([FromBody] LoginAccount login)
         {
+            login.Email = GenerateSHA384String(login.Email);
+            login.Password = GenerateSHA384String(login.Password);
             // Linq Object
             var UserLoginInf = _storeContext.Login.Where(x => x.Username == login.Email && x.Password == login.Password).SingleOrDefault();
-            if(UserLoginInf == null)
+            if (UserLoginInf == null)
             {
                 // Unautharized
                 return Unauthorized("Either UserName or Password is not Correct");
@@ -111,25 +118,25 @@ namespace Ref.Lect4.Controllers
                 var users = _storeContext.User.Where(x => x.UserId == UserLoginInf.UserId).ToList();
                 var userTypes = _storeContext.UserType.ToList();
                 var innerjoin = from u in users
-                             join t in userTypes
-                             on u.UserTypeId equals t.UserTypeId
-                             select new UserInformation
-                             {
-                                 User = u,
-                                 UserType = t
-                             };
+                                join t in userTypes
+                                on u.UserTypeId equals t.UserTypeId
+                                select new UserInformation
+                                {
+                                    User = u,
+                                    UserType = t
+                                };
                 string id = innerjoin.ElementAt(0).User.UserId.ToString();
                 //return Ok(innerjoin);
 
                 // Join Second way 
-                var output = users.Join(userTypes, x=>x.UserId, y=> y.UserTypeId, (user1 , user2) => new
-                { 
+                var output = users.Join(userTypes, x => x.UserId, y => y.UserTypeId, (user1, user2) => new
+                {
                     userId = user1.UserId,
                     UserName = user1.Email,
-                    UserType =user2.Name
+                    UserType = user2.Name
 
 
-                
+
                 }).ToList();
                 //return Ok(output);
 
@@ -154,25 +161,28 @@ namespace Ref.Lect4.Controllers
 
 
             }
-            
+
 
         }
-        
+
 
         [HttpPut]
         [Route("Resetpassword")]
         public IActionResult UpdatePassword([FromBody] ResetPassword reset)
         {
+
+            reset.UserName = GenerateSHA384String(reset.UserName);
+
             var Check = _storeContext.Login.Where(x => x.Username == reset.UserName && x.Password == reset.OldPassword).FirstOrDefault();
             if (Check != null)
             {
                 if (reset.NewPassword == reset.ConfirmPassword)
                 {
-                    Check.Password = reset.ConfirmPassword; // or Check.Password = reset.NewPassword; ...... The Same 
+                    Check.Password = GenerateSHA384String(reset.ConfirmPassword); // or Check.Password = reset.NewPassword; ...... The Same 
                     _storeContext.Update(Check);
                     _storeContext.SaveChanges();
                     return Ok(Check);
-                } 
+                }
             }
             return Ok("Invalid UserName or PassWord");
 
@@ -183,13 +193,15 @@ namespace Ref.Lect4.Controllers
         [Route("ForgetPassword")]
         public IActionResult ForgetPassword([FromBody] ForgetPass FORGET)
         {
-            var Check1 = _storeContext.Login.Where(x => x.Username == FORGET.UserName ).FirstOrDefault();
+            FORGET.UserName = GenerateSHA384String(FORGET.UserName); // validation username 
 
-            if ( Check1 != null )
+            var Check1 = _storeContext.Login.Where(x => x.Username == FORGET.UserName).FirstOrDefault();
+            
+            if (Check1 != null)
             {
-                if ( FORGET.NewPassword == FORGET.ConfirmPassword)
+                if (FORGET.NewPassword == FORGET.ConfirmPassword)
                 {
-                    Check1.Password = FORGET.ConfirmPassword;
+                    Check1.Password = GenerateSHA384String(FORGET.ConfirmPassword);
                     _storeContext.Update(Check1);
                     _storeContext.SaveChanges();
                     return Ok(Check1);
@@ -224,11 +236,58 @@ namespace Ref.Lect4.Controllers
                 return Ok("Account Not Found");
             }
 
-           
+
+        }
+        [NonAction]
+        static string EncryptString(string plainText, byte[] key, byte[] iv)
+        {
+            byte[] encrypted;
+
+            // Create an Aes object with the specified key and IV.
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = key;
+                aes.IV = iv;
+
+                // Create a new MemoryStream object to contain the encrypted bytes.
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    // Create a CryptoStream object to perform the encryption.
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                    {
+                        // Encrypt the plaintext.
+                        using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
+                        {
+                            streamWriter.Write(plainText);
+                        }
+
+                        encrypted = memoryStream.ToArray();
+                    }
+                }
+            }
+
+            return Convert.ToBase64String(encrypted);
         }
 
+        [NonAction]
+        static string GenerateSHA384String(string inputString)
+        {
+            SHA384 sha384 = SHA384Managed.Create();
+            byte[] bytes = Encoding.UTF8.GetBytes(inputString);
+            byte[] hash = sha384.ComputeHash(bytes);
+            return GetStringFromHash(hash);
+        }
+
+        [NonAction]
+        static string GetStringFromHash(byte[] hash)
+        {
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < hash.Length; i++)
+            {
+                result.Append(hash[i].ToString("X2"));
+            }
+            return result.ToString();
 
 
-
-    }
-}
+        }
+}   }
