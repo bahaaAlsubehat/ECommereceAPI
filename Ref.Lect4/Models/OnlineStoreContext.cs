@@ -1,10 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-
-// Code scaffolded by EF Core assumes nullable reference types (NRTs) are not used or disabled.
-// If you have enabled NRTs for your project, then un-comment the following line:
-// #nullable disable
 
 namespace Ref.Lect4.Models
 {
@@ -19,21 +16,22 @@ namespace Ref.Lect4.Models
         {
         }
 
-        public virtual DbSet<Cart> Cart { get; set; }
-        public virtual DbSet<CartItem> CartItem { get; set; }
-        public virtual DbSet<Category> Category { get; set; }
-        public virtual DbSet<Items> Items { get; set; }
-        public virtual DbSet<Login> Login { get; set; }
-        public virtual DbSet<Order> Order { get; set; }
-        public virtual DbSet<OrderStatus> OrderStatus { get; set; }
-        public virtual DbSet<User> User { get; set; }
-        public virtual DbSet<UserType> UserType { get; set; }
+        public virtual DbSet<Cart> Carts { get; set; } = null!;
+        public virtual DbSet<CartItem> CartItems { get; set; } = null!;
+        public virtual DbSet<Category> Categories { get; set; } = null!;
+        public virtual DbSet<Item> Items { get; set; } = null!;
+        public virtual DbSet<Login> Logins { get; set; } = null!;
+        public virtual DbSet<Order> Orders { get; set; } = null!;
+        public virtual DbSet<OrderStatus> OrderStatuses { get; set; } = null!;
+        public virtual DbSet<User> Users { get; set; } = null!;
+        public virtual DbSet<UserType> UserTypes { get; set; } = null!;
+        public virtual DbSet<VerificationCode> VerificationCodes { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
                 optionsBuilder.UseSqlServer("Server=DESKTOP-46F1969;Database=OnlineStore;Trusted_Connection=True;");
             }
         }
@@ -42,40 +40,44 @@ namespace Ref.Lect4.Models
         {
             modelBuilder.Entity<Cart>(entity =>
             {
+                entity.ToTable("Cart");
+
                 entity.HasOne(d => d.User)
-                    .WithMany(p => p.Cart)
+                    .WithMany(p => p.Carts)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("FK_Cart_User");
             });
 
             modelBuilder.Entity<CartItem>(entity =>
             {
+                entity.ToTable("CartItem");
+
                 entity.Property(e => e.Note)
                     .HasMaxLength(500)
                     .IsUnicode(false);
 
                 entity.HasOne(d => d.Cart)
-                    .WithMany(p => p.CartItem)
+                    .WithMany(p => p.CartItems)
                     .HasForeignKey(d => d.CartId)
                     .HasConstraintName("FK_CartItemId_Cart");
 
                 entity.HasOne(d => d.Item)
-                    .WithMany(p => p.CartItem)
+                    .WithMany(p => p.CartItems)
                     .HasForeignKey(d => d.ItemId)
                     .HasConstraintName("FK_CartItemId_Items");
             });
 
             modelBuilder.Entity<Category>(entity =>
             {
+                entity.ToTable("Category");
+
                 entity.Property(e => e.Name)
                     .HasMaxLength(50)
                     .IsUnicode(false);
             });
 
-            modelBuilder.Entity<Items>(entity =>
+            modelBuilder.Entity<Item>(entity =>
             {
-                entity.HasKey(e => e.ItemId);
-
                 entity.Property(e => e.Description)
                     .HasMaxLength(250)
                     .IsUnicode(false);
@@ -92,7 +94,7 @@ namespace Ref.Lect4.Models
 
             modelBuilder.Entity<Login>(entity =>
             {
-                entity.Property(e => e.CurrentToken).IsUnicode(false);
+                entity.ToTable("Login");
 
                 entity.Property(e => e.Password)
                     .HasMaxLength(100)
@@ -103,13 +105,15 @@ namespace Ref.Lect4.Models
                     .IsUnicode(false);
 
                 entity.HasOne(d => d.User)
-                    .WithMany(p => p.Login)
+                    .WithMany(p => p.Logins)
                     .HasForeignKey(d => d.UserId)
                     .HasConstraintName("FK_Login_User");
             });
 
             modelBuilder.Entity<Order>(entity =>
             {
+                entity.ToTable("Order");
+
                 entity.Property(e => e.DeliveryDate).HasColumnType("datetime");
 
                 entity.Property(e => e.Note)
@@ -119,18 +123,20 @@ namespace Ref.Lect4.Models
                 entity.Property(e => e.OrderDate).HasColumnType("datetime");
 
                 entity.HasOne(d => d.ApprovedByNavigation)
-                    .WithMany(p => p.Order)
+                    .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.ApprovedBy)
                     .HasConstraintName("FK_Order_Cart");
 
                 entity.HasOne(d => d.Status)
-                    .WithMany(p => p.Order)
+                    .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.StatusId)
                     .HasConstraintName("FK_Order_OrderStatus");
             });
 
             modelBuilder.Entity<OrderStatus>(entity =>
             {
+                entity.ToTable("OrderStatus");
+
                 entity.Property(e => e.Name)
                     .HasMaxLength(50)
                     .IsFixedLength();
@@ -138,14 +144,16 @@ namespace Ref.Lect4.Models
 
             modelBuilder.Entity<User>(entity =>
             {
+                entity.ToTable("User");
+
                 entity.Property(e => e.Email)
                     .HasMaxLength(50)
                     .IsUnicode(false);
 
                 entity.Property(e => e.Iv)
-                    .HasColumnName("iv")
                     .HasMaxLength(50)
-                    .IsUnicode(false);
+                    .IsUnicode(false)
+                    .HasColumnName("iv");
 
                 entity.Property(e => e.Key)
                     .HasMaxLength(50)
@@ -160,16 +168,32 @@ namespace Ref.Lect4.Models
                     .IsUnicode(false);
 
                 entity.HasOne(d => d.UserType)
-                    .WithMany(p => p.User)
+                    .WithMany(p => p.Users)
                     .HasForeignKey(d => d.UserTypeId)
                     .HasConstraintName("FK_Table_2_UserType");
             });
 
             modelBuilder.Entity<UserType>(entity =>
             {
+                entity.ToTable("UserType");
+
                 entity.Property(e => e.Name)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<VerificationCode>(entity =>
+            {
+                entity.ToTable("VerificationCode");
+
+                entity.Property(e => e.Code).HasMaxLength(50);
+
+                entity.Property(e => e.ExpiredDate).HasColumnType("datetime");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.VerificationCodes)
+                    .HasForeignKey(d => d.UserId)
+                    .HasConstraintName("FK_VerificationCode_User");
             });
 
             OnModelCreatingPartial(modelBuilder);

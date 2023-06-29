@@ -28,7 +28,7 @@ namespace Ref.Lect4.Controllers
         {
            
 
-            var users = _storeContext.User.Where(x => x.UserId == Id).ToList();
+            var users = _storeContext.Users.Where(x => x.UserId == Id).ToList();
             List<UserInformationList> ListOfUser = new List<UserInformationList>();
             users.ForEach(x => { ListOfUser.Add(new UserInformationList(x.Name, x.Email, x.Phone)); });
             return Ok(ListOfUser);
@@ -42,7 +42,7 @@ namespace Ref.Lect4.Controllers
         {
 
 
-            var users = _storeContext.User.Where(x => x.UserTypeId == 1).ToList();
+            var users = _storeContext.Users.Where(x => x.UserTypeId == 1).ToList();
             List<UserInformationList> ListOfUser = new List<UserInformationList>();
             users.ForEach(x => { ListOfUser.Add(new UserInformationList(x.Name, x.Email, x.Phone)); });
             return Ok(ListOfUser);
@@ -55,7 +55,7 @@ namespace Ref.Lect4.Controllers
         [Route("UserInformationonList/{Id}")]
         public IActionResult GetUserInformation1(int Id)
         {
-            var users = _storeContext.User.Where(x => x.UserId == Id).FirstOrDefault();
+            var users = _storeContext.Users.Where(x => x.UserId == Id).FirstOrDefault();
             if (users != null)
             {
                 var response = new
@@ -82,50 +82,50 @@ namespace Ref.Lect4.Controllers
         [Route("GetOrders")]
         public IActionResult SearchOrders(int PageSize, int PageNumber, int? orderId, int? statusId, bool? isApproved , DateTime? deliveryDatefrom , DateTime? deliveryDateto , DateTime? orderDatefrom, DateTime? orderDateto)
         {
-            var orders = _storeContext.Order.ToList();
+            var orders = _storeContext.Orders.ToList();
             if (orderId != null)
             {
-                orders = _storeContext.Order.Where(x => x.OrderId == orderId).ToList();
+                orders = _storeContext.Orders.Where(x => x.OrderId == orderId).ToList();
             }
             if(statusId != null)
             {
-                orders = _storeContext.Order.Where(x => x.StatusId == statusId).ToList();
+                orders = _storeContext.Orders.Where(x => x.StatusId == statusId).ToList();
             }
             if(isApproved != null) 
             {
-                orders = _storeContext.Order.Where(x => x.IsApproved == isApproved).ToList();
+                orders = _storeContext.Orders.Where(x => x.IsApproved == isApproved).ToList();
 
             }
             // DeliveryDate
             if (deliveryDatefrom != null && deliveryDateto == null)
             {
-                orders = _storeContext.Order.Where(x => x.DeliveryDate >= deliveryDatefrom).ToList();
+                orders = _storeContext.Orders.Where(x => x.DeliveryDate >= deliveryDatefrom).ToList();
 
             }
             if (deliveryDatefrom == null && deliveryDateto != null)
             {
-                orders = _storeContext.Order.Where(x => x.DeliveryDate <= deliveryDateto).ToList();
+                orders = _storeContext.Orders.Where(x => x.DeliveryDate <= deliveryDateto).ToList();
 
             }
             if (deliveryDatefrom != null && deliveryDateto != null)
             {
-                orders = _storeContext.Order.Where(x => x.DeliveryDate >= deliveryDatefrom && x.DeliveryDate <= deliveryDateto).ToList();
+                orders = _storeContext.Orders.Where(x => x.DeliveryDate >= deliveryDatefrom && x.DeliveryDate <= deliveryDateto).ToList();
 
             }
             // 
             if(orderDatefrom != null && orderDateto == null)
             {
-                orders = _storeContext.Order.Where(x => x.OrderDate >= orderDatefrom).ToList();
+                orders = _storeContext.Orders.Where(x => x.OrderDate >= orderDatefrom).ToList();
 
             }
             if (orderDatefrom == null && orderDateto != null)
             {
-                orders = _storeContext.Order.Where(x => x.OrderDate <= orderDateto).ToList();
+                orders = _storeContext.Orders.Where(x => x.OrderDate <= orderDateto).ToList();
 
             }
             if (orderDatefrom != null && orderDateto != null)
             {
-                orders = _storeContext.Order.Where(x => x.OrderDate >= orderDatefrom && x.OrderDate <= orderDateto).ToList();
+                orders = _storeContext.Orders.Where(x => x.OrderDate >= orderDatefrom && x.OrderDate <= orderDateto).ToList();
 
             }
 
@@ -137,7 +137,7 @@ namespace Ref.Lect4.Controllers
         [Route("GetOrderDetails/{orderid}")]
         public IActionResult OrderDetails(int orderid)
         {
-            var order = _storeContext.Order.Where(x => x.OrderId == orderid).SingleOrDefault();
+            var order = _storeContext.Orders.Where(x => x.OrderId == orderid).SingleOrDefault();
             if (order != null)
             {
                 OrderDetailsForAdmin ForAdmin = new OrderDetailsForAdmin(); // Create object
@@ -146,11 +146,11 @@ namespace Ref.Lect4.Controllers
                 ForAdmin.Note = order.Note;
                 ForAdmin.DelivaryDate = order.DeliveryDate.ToString();
                 ForAdmin.TotalPrics = order.TotalPrice.ToString();
-                ForAdmin.OrderStatus = _storeContext.OrderStatus.Where(x => x.OrderStatusId == order.StatusId).Single().Name;
+                ForAdmin.OrderStatus = _storeContext.OrderStatuses.Where(x => x.OrderStatusId == order.StatusId).Single().Name;
                 ForAdmin.IsApproved = order.IsApproved == true ? "Approved" : order.IsApproved == false ? "Rejected" : "Uncompleted"; // because we defined the IsApproved in DTO as string
 
-                var cart = _storeContext.Cart.Where(x => x.CartId == order.CartId).ToList();
-                var cartitem = _storeContext.CartItem.Where(x => x.CartId == order.CartId).ToList();
+                var cart = _storeContext.Carts.Where(x => x.CartId == order.CartId).ToList();
+                var cartitem = _storeContext.CartItems.Where(x => x.CartId == order.CartId).ToList();
                 var item = _storeContext.Items.ToList();
 
                 var OrderItems = from c in cart
@@ -168,7 +168,7 @@ namespace Ref.Lect4.Controllers
                                  };
 
                 ForAdmin.ItemsinOrder = OrderItems.ToList();
-                var user = _storeContext.User.Where(x => x.UserId == cart.ElementAt(0).UserId).SingleOrDefault();
+                var user = _storeContext.Users.Where(x => x.UserId == cart.ElementAt(0).UserId).SingleOrDefault();
                 ForAdmin.UserInfo = new UserInformationList(user.Name, user.Email, user.Phone);
                 return Ok(ForAdmin);
             }
@@ -185,7 +185,7 @@ namespace Ref.Lect4.Controllers
         [Route("CreateItem")]
         public IActionResult CreateItem(createitemDTO ItemCreated)
         {
-            var cateogory = _storeContext.Category.Where(x => x.CategoryId == ItemCreated.catigoryid).SingleOrDefault();
+            var cateogory = _storeContext.Categories.Where(x => x.CategoryId == ItemCreated.catigoryid).SingleOrDefault();
             if (cateogory != null)
             {
                 Items item = new Items();
@@ -235,10 +235,10 @@ namespace Ref.Lect4.Controllers
         [Route("ManageOrder/{orderid}/{flag}/{adminid}")]
         public IActionResult ManageOrder(int orderid, string flag, int adminid)
                 {
-                    var order = _storeContext.Order.Where(x => x.OrderId == orderid).SingleOrDefault();
+                    var order = _storeContext.Orders.Where(x => x.OrderId == orderid).SingleOrDefault();
                     if (order != null)
                     {
-                        var admin = _storeContext.User.Where(x => x.UserId == adminid && UserTypeId == 2).SingleOrDefault();
+                        var admin = _storeContext.Users.Where(x => x.UserId == adminid && UserTypeId == 2).SingleOrDefault();
                         if (admin != null)
                         {
                             if (flag != null)
@@ -276,10 +276,10 @@ namespace Ref.Lect4.Controllers
             var item = _storeContext.Items.Where(x => x.ItemId == Id && x.IsAvailable == true).SingleOrDefault(); // check item
             if (item != null)
             {
-                var checkcart = _storeContext.Cart.Where(x => x.IsActive == true).ToList(); // Check if the cart is active to check if the item exist in cart to remove it 
+                var checkcart = _storeContext.Carts.Where(x => x.IsActive == true).ToList(); // Check if the cart is active to check if the item exist in cart to remove it 
                 foreach (var c in checkcart )
                 {
-                    var checkcaeritem = _storeContext.CartItem.Where(z => z.CartId == c.CartId && z.ItemId == Id).SingleOrDefault();  // wh want to check if the item exist in cart
+                    var checkcaeritem = _storeContext.CartItems.Where(z => z.CartId == c.CartId && z.ItemId == Id).SingleOrDefault();  // wh want to check if the item exist in cart
                     if (checkcaeritem != null)
                     {
                         _storeContext.Remove(item);

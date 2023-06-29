@@ -24,10 +24,14 @@ namespace Ref.Lect4.Controllers
         [Route("GetCategories")]
         public IActionResult GetAllCategories([FromHeader]string token)
         {
-            return Ok(DecodeToken(token));
-
-            var categories = _storeContext.Category.ToList();
-            return Ok(categories);
+            //return Ok(DecodeToken(token));
+            if(ValidateJWTtoken(token))
+            {
+                var categories = _storeContext.Categories.ToList();
+                return Ok(categories);
+            }
+            return Unauthorized("Invalide Token");
+           
         }
 
         // Second we want to called all items but we want to note the there is pagination 
@@ -107,17 +111,30 @@ namespace Ref.Lect4.Controllers
         }
 
 
+
+        
+
+
+
         // Decoding Code Below
 
         [NonAction]
-        public int DecodeToken(string tokenString)
+        public bool ValidateJWTtoken(string tokenString)
         {
             String toke = "Bearer " + tokenString;
             var jwtEncodedString = toke.Substring(7);
 
             var token = new JwtSecurityToken(jwtEncodedString: jwtEncodedString);
-            int UserId = Int32.Parse((token.Claims.First(c => c.Type == "Userid").Value.ToString()));
-            return UserId;
+            DateTime datetime = DateTime.UtcNow;
+            DateTime expired = token.ValidTo;
+
+            if (datetime < expired)
+            {
+               // int UserId = Int32.Parse((token.Claims.First(c => c.Type == "Userid").Value.ToString()));
+
+                return true;
+            }
+            return false;
         }
 
     }

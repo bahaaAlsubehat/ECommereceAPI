@@ -25,7 +25,7 @@ namespace Ref.Lect4.Controllers
         {
             if (itemId >0 && userId >0 && qnt>0)
             {
-                var cart = _storeContext.Cart.Where(x => x.UserId == userId && x.IsActive == true).SingleOrDefault();
+                var cart = _storeContext.Carts.Where(x => x.UserId == userId && x.IsActive == true).SingleOrDefault();
                 if (cart != null)
                 {
 
@@ -33,7 +33,7 @@ namespace Ref.Lect4.Controllers
                     var item = _storeContext.Items.Where(x => x.ItemId == itemId && x.IsAvailable == true).SingleOrDefault();
 
                     // Check if the item already excist in cart 
-                    var IsExistCartItem = _storeContext.CartItem.Where(x => x.ItemId == itemId && x.CartId == cart.CartId).SingleOrDefault();
+                    var IsExistCartItem = _storeContext.CartItems.Where(x => x.ItemId == itemId && x.CartId == cart.CartId).SingleOrDefault();
                     if (IsExistCartItem != null)
                     {
                         if (item != null)
@@ -60,7 +60,7 @@ namespace Ref.Lect4.Controllers
                 }
                 else
                 {
-                    var user = _storeContext.User.Where(x => x.UserId == userId).FirstOrDefault();
+                    var user = _storeContext.Users.Where(x => x.UserId == userId).FirstOrDefault();
                     if (user != null)
                     {
                         Cart cart1 = new Cart();
@@ -68,7 +68,7 @@ namespace Ref.Lect4.Controllers
                         cart1.IsActive = true;
                         _storeContext.Add(cart1);
                         _storeContext.SaveChanges();
-                        var cartnew = _storeContext.Cart.Where(x => x.UserId == userId && x.IsActive == true).SingleOrDefault();
+                        var cartnew = _storeContext.Carts.Where(x => x.UserId == userId && x.IsActive == true).SingleOrDefault();
                         if (cartnew != null)
                         {
 
@@ -76,7 +76,7 @@ namespace Ref.Lect4.Controllers
                             var item = _storeContext.Items.Where(x => x.ItemId == itemId && x.IsAvailable == true).SingleOrDefault();
 
                             // Check if the item already excist in cart 
-                            var IsExistCartItem = _storeContext.CartItem.Where(x => x.ItemId == itemId && x.CartId == cartnew.CartId).SingleOrDefault();
+                            var IsExistCartItem = _storeContext.CartItems.Where(x => x.ItemId == itemId && x.CartId == cartnew.CartId).SingleOrDefault();
                             if (IsExistCartItem != null)
                             {
                                 if (item != null)
@@ -119,7 +119,7 @@ namespace Ref.Lect4.Controllers
         [Route("OrderDetails/{OrderId}")]
         public IActionResult OrderDetails(int orderid)
         {
-            var order2 = _storeContext.Order.Where(x => x.OrderId == orderid).SingleOrDefault();
+            var order2 = _storeContext.Orders.Where(x => x.OrderId == orderid).SingleOrDefault();
             if (order2 != null)
             {
                 OrderDetailsDTO ForUser = new OrderDetailsDTO();
@@ -128,9 +128,9 @@ namespace Ref.Lect4.Controllers
                 ForUser.IsApproved = order2.IsApproved == true ? "Approved" : order2.IsApproved == false ? "Rejected" : "Uncompleted";
                 ForUser.TotalPrics = order2.TotalPrice.ToString();
                 ForUser.Note = order2.Note;
-                ForUser.OrderStatus = _storeContext.OrderStatus.Where(x => x.OrderStatusId == order2.StatusId).Single().Name;
-                var cart2 = _storeContext.Cart.Where(x => x.CartId == order2.CartId).ToList();
-                var cartitem2 = _storeContext.CartItem.Where(x => x.CartId == order2.CartId).ToList();
+                ForUser.OrderStatus = _storeContext.OrderStatuses.Where(x => x.OrderStatusId == order2.StatusId).Single().Name;
+                var cart2 = _storeContext.Carts.Where(x => x.CartId == order2.CartId).ToList();
+                var cartitem2 = _storeContext.CartItems.Where(x => x.CartId == order2.CartId).ToList();
                 var item2 = _storeContext.Items.ToList();
                 // Now We will Join between Items and order tables
                 var OrderItems = from c in cart2
@@ -161,10 +161,10 @@ namespace Ref.Lect4.Controllers
         [Route("CheckOrderStatud/{id}")]
         public IActionResult ChckOrderStatus(int id)
         {
-            var order = _storeContext.Order.Where(x => x.OrderId == id).SingleOrDefault();
+            var order = _storeContext.Orders.Where(x => x.OrderId == id).SingleOrDefault();
             if (order != null)
             {
-                var CheckSts = _storeContext.OrderStatus.Where(x => x.OrderStatusId == order.StatusId).First().Name;
+                var CheckSts = _storeContext.OrderStatuses.Where(x => x.OrderStatusId == order.StatusId).First().Name;
                 return Ok(CheckSts);
             }
             else
@@ -180,7 +180,7 @@ namespace Ref.Lect4.Controllers
         // We will create class in DTO Folder to used it in this action (Name : OrderDTO)
         public IActionResult CheckOrder(OrderDTO order)
         {
-            var cart = _storeContext.Cart.Where(x => x.CartId == order.CartId && x.IsActive == true).SingleOrDefault();
+            var cart = _storeContext.Carts.Where(x => x.CartId == order.CartId && x.IsActive == true).SingleOrDefault();
             if (cart != null)
             {
                 if (order.DeliveryDate.AddDays(-2).AddMinutes(1) > DateTime.Now)
@@ -221,8 +221,8 @@ namespace Ref.Lect4.Controllers
         [Route("RemoveFromCart/{cartItemId}")]
         public IActionResult RemoveFromCart(int cartItemId)
         {
-            var cartitem = _storeContext.CartItem.Where(x => x.CartItemId == cartItemId).SingleOrDefault();
-            var cart = _storeContext.Cart.Where(x => x.CartId == cartitem.CartId && x.IsActive == true).SingleOrDefault();
+            var cartitem = _storeContext.CartItems.Where(x => x.CartItemId == cartItemId).SingleOrDefault();
+            var cart = _storeContext.Carts.Where(x => x.CartId == cartitem.CartId && x.IsActive == true).SingleOrDefault();
 
 
             if (cartitem != null)
@@ -267,8 +267,8 @@ namespace Ref.Lect4.Controllers
         [Route("RemoveItemFromCart/{cartItemId}")]
         public IActionResult RemoveItemFromCart(int cartItemId)
         {
-            var cartitem = _storeContext.CartItem.Where(x => x.CartItemId == cartItemId).SingleOrDefault();
-            var cart = _storeContext.Cart.Where(x => x.CartId == cartitem.CartId && x.IsActive == true).SingleOrDefault();
+            var cartitem = _storeContext.CartItems.Where(x => x.CartItemId == cartItemId).SingleOrDefault();
+            var cart = _storeContext.Carts.Where(x => x.CartId == cartitem.CartId && x.IsActive == true).SingleOrDefault();
             if (cartitem != null)
             {
                 if (cart != null && cart.IsActive == true)
