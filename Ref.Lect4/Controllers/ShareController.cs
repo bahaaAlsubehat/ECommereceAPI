@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Ref.Lect4.Helper;
 using Ref.Lect4.Models;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -11,10 +13,15 @@ namespace Ref.Lect4.Controllers
     {
         // We want to build Dependency injection
         private readonly OnlineStoreContext _storeContext;
+        private readonly IConfiguration _configuration;
+        private readonly OnlineStoreHelper _helper;
 
-        public ShareController (OnlineStoreContext storeContext)
+        public ShareController (OnlineStoreContext storeContext, IConfiguration configuration)
         {
             this._storeContext = storeContext;
+            _configuration = configuration;
+            _helper = new OnlineStoreHelper(_storeContext, _configuration);
+            
         }
 
 
@@ -25,7 +32,7 @@ namespace Ref.Lect4.Controllers
         public IActionResult GetAllCategories([FromHeader]string token)
         {
             //return Ok(DecodeToken(token));
-            if(ValidateJWTtoken(token))
+            if(_helper.ValidateJWTtoken(token))
             {
                 var categories = _storeContext.Categories.ToList();
                 return Ok(categories);
@@ -110,32 +117,6 @@ namespace Ref.Lect4.Controllers
             return Ok(item.Skip(SkipAmount).Take(PageSize));
         }
 
-
-
-        
-
-
-
-        // Decoding Code Below
-
-        [NonAction]
-        public bool ValidateJWTtoken(string tokenString)
-        {
-            String toke = "Bearer " + tokenString;
-            var jwtEncodedString = toke.Substring(7);
-
-            var token = new JwtSecurityToken(jwtEncodedString: jwtEncodedString);
-            DateTime datetime = DateTime.UtcNow;
-            DateTime expired = token.ValidTo;
-
-            if (datetime < expired)
-            {
-               // int UserId = Int32.Parse((token.Claims.First(c => c.Type == "Userid").Value.ToString()));
-
-                return true;
-            }
-            return false;
-        }
 
     }
 }

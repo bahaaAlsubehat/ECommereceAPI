@@ -1,4 +1,5 @@
-﻿
+﻿using Ref.Lect4.Helper;
+
 namespace Ref.Lect4.DTO
 {
     public class LoginAccount
